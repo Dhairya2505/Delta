@@ -1,0 +1,15 @@
+[package]
+name = "delta"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bcrypt = "0.17.0"
+dotenv = "0.15.0"
+flate2 = "1.1.1"
+fs = "0.0.5"
+mongodb = "3.2.3"
+serde = "1.0.219"
+sha2 = "0.10.8"
+tokio = "1.44.2"
+walkdir = "2.5.0"
