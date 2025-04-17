@@ -1,48 +1,15 @@
 use std::{
-    fs::{
-        File,
-        OpenOptions
-    },
-    io::{
-        self,
-        BufRead,
-        BufReader,
-        Write
-    },
+    fs::File,
     path::Path
 };
-
-use flate2::{read::GzDecoder, write::GzEncoder, Compression};
-
-use crate::{commands::add::split_path::split_path, utility::{hash_file::hash_file, read_file::read_lines}};
-
-fn decompress_file_lines(path: &String) -> io::Result<Vec<String>> {
-
-    let file = File::open(path)?;
-    let decoder = GzDecoder::new(file);
-    let reader = BufReader::new(decoder);
-
-    let lines = reader
-        .lines()
-        .collect::<Result<Vec<_>, _>>()?;
-
-    Ok(lines)
-}
-
-fn compress_content_to_file(content: &str, output: &String) {
-    let output_file = OpenOptions::new()
-        .write(true)
-        .truncate(true) // overwrite existing content
-        .open(output)
-        .expect("Failed to open existing file");
-
-    let mut encoder = GzEncoder::new(output_file, Compression::default());
-
-    encoder
-        .write_all(content.as_bytes())
-        .expect("Failed to write compressed data");
-    encoder.finish().expect("Failed to finish compression");
-}
+use crate::{
+    commands::add::split_path::split_path,
+    utility::{
+        compress::compress_content_to_file,
+        decompress::decompress_file_lines,
+        hash_file::hash_file, read_file::read_lines
+    }
+};
 
 pub fn track_file (file_path: &String, ignore_files: &Vec<String>) {
     
@@ -59,7 +26,7 @@ pub fn track_file (file_path: &String, ignore_files: &Vec<String>) {
 
         //track file
         let hash = hash_file(file_path).unwrap();
-        let index_path_string = format!(".\\.delta\\index\\{}", file_path.trim_start_matches(".\\"));
+        let index_path_string = format!("./.delta/index/{}", file_path.trim_start_matches("./"));
         let index_path = Path::new(&index_path_string);
 
         if index_path.exists() && index_path.is_file() {
@@ -72,7 +39,7 @@ pub fn track_file (file_path: &String, ignore_files: &Vec<String>) {
             }
 
         } else {
-            split_path(&file_path, ".\\.delta\\index");
+            split_path(&file_path, "./.delta/index");
             File::create(&index_path_string).expect("Failed to create file !!!");
             track(&file_path, index_path_string, hash);
         }
@@ -147,7 +114,7 @@ fn track(file_path: &String, index_path_string: String, hash: String){
     let stage_path = Path::new(&stage_path_string);
     
     if !stage_path.exists() || !stage_path.is_file() {
-        split_path(&file_path, ".\\.delta\\stage");
+        split_path(&file_path, "./.delta/stage");
         File::create(&stage_path).expect("Failed to create a file !!!");   
     }
     compress_content_to_file(&content, &stage_path_string);
