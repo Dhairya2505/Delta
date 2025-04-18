@@ -3,14 +3,18 @@ use std::{
     fs::{
         self,
         File,
-    }, path::Path
+    },
+    path::Path
 };
 
 
 mod commands;
 
 use commands::{
-    add::track_file::track_file,
+    add::{
+        split_path::split_path,
+        track_file::track_file
+    },
     config::{
         check_username::check_username,
         verify_password::verify_password
@@ -20,7 +24,11 @@ use commands::{
 
 mod utility;
 use utility::{
-    append_data::append, compress::compress_content_to_file, decompress::decompress_file_lines, generate_random_id::generate_random_id, read_file::read_lines
+    append_data::append,
+    compress::compress_content_to_file,
+    decompress::decompress_file_lines,
+    generate_random_id::generate_random_id,
+    read_file::read_lines
 };
 
 use walkdir::WalkDir;
@@ -30,6 +38,7 @@ use sha2::{Sha256, Digest};
 use chrono::prelude::*;
 
 use chrono_tz::Asia::Kolkata;
+
 
 fn main() {
 
@@ -45,7 +54,7 @@ fn main() {
         // setting username
         if args[2] == "user.name" {
 
-            let path = Path::new("/usr/local/bin/.config");
+            let path = Path::new("C:/delta/.config");
             if !path.exists() || !path.is_file() {
                 File::create(&path).expect("Failed to create .config !!!");
             }
@@ -57,10 +66,10 @@ fn main() {
                 Ok(true) => {
 
                     // update the .config file with username
-                    let lines = read_lines(&String::from("/usr/local/bin/.config"));
-                    fs::write("/usr/local/bin/.config", username).expect("Failed to write !!!");
+                    let lines = read_lines(&String::from("C:/delta/.config"));
+                    fs::write("C:/delta/.config", username).expect("Failed to write !!!");
                     if lines.len() == 2 && &lines[0] == username {
-                        append("/usr/local/bin/.config", &lines[1]);
+                        append("C:/delta/.config", &lines[1]);
                     } else {
                         println!("Add password");
                         println!("Command -> delta config user.password <password>");
@@ -78,11 +87,11 @@ fn main() {
         // setting password
         } else if args[2] == "user.password" {
             
-            let path = Path::new("/usr/local/bin/.config");
+            let path = Path::new("C:/delta/.config");
             if !path.exists() || !path.is_file() {
-                File::create("/usr/local/bin/.config").expect("Failed to create .config !!!");
+                File::create("C:/delta/.config").expect("Failed to create .config !!!");
             }
-            let lines = read_lines(&String::from("/usr/local/bin/.config"));
+            let lines = read_lines(&String::from("C:/delta/.config"));
             if lines.len() > 0 {
                 let username = &lines[0];
                 let password = &args[3];
@@ -171,30 +180,30 @@ fn main() {
 
     // commit the changes
     } else if command == "commit" {
-        // get the content of each file from stage
 
-        let path = Path::new("/usr/local/bin/.config");
-
+        // check for the username
+        let path = Path::new("C:/delta/.config");
         if !path.exists() || !path.is_file() {
             println!("Firstly authenticate yourself !!!");
             println!("Command -> delta config user.name <username>");
             println!("Command -> delta config user.password <password>");
             return;
         }
-        let lines = read_lines(&String::from("/usr/local/bin/.config"));
+        let lines = read_lines(&String::from("C:/delta/.config"));
         if lines.len() == 0 {
             println!("Firstly authenticate yourself !!!");
             println!("Command -> delta config user.name <username>");
             println!("Command -> delta config user.password <password>");
             return;
         }
-
+        
         let username = &lines[0];
-
+        
         let mut blob_hash: Vec<String> = Vec::new();
-
+        
         let name = &args[2];
-
+        
+        // get the content of each file from stage
         for entry in WalkDir::new("./.delta/stage")
             .into_iter()
             .filter_map(|e| e.ok())
@@ -213,11 +222,22 @@ fn main() {
                             content = content + &line + "\n";
                         }
 
+                        // add to current state folder
+                        let original_path = format!(".{}",&path_string[14..]);
+                        
+                        let original_content = fs::read_to_string(&original_path).expect("Failed to read file !!!");
+                        let current_path_string = format!("./.delta/current state/{}", &path_string[14..]);
+                        
+                        split_path(&original_path, "./.delta/current state");
+                        File::create(&current_path_string).expect("Failed to create file !!!");
+                        compress_content_to_file(&original_content, &current_path_string);
+
                         // get the hash from the index folder
                         let index_path = format!("./.delta/index/{}", &path_string[14..]);
                         let hash = fs::read_to_string(&index_path).expect("Failed to read file !!!");
                         let hash_string = format!("{}", hash);
                         blob_hash.push(hash_string);
+
 
                         // split the hash for blob storage
                         let first = &hash[0..2];
@@ -291,6 +311,79 @@ fn main() {
 
     // push the changes to delta repo
     } else if command == "push" {
+
+        let path = Path::new("C:/delta/.config");
+        if !path.exists() || !path.is_file() {
+            println!("Firstly authenticate yourself !!!");
+            println!("Command -> delta config user.name <username>");
+            println!("Command -> delta config user.password <password>");
+            return;
+        }
+        let lines = read_lines(&String::from("C:/delta/.config"));
+        if lines.len() != 2 {
+            println!("Firstly authenticate yourself !!!");
+            println!("Command -> delta config user.name <username>");
+            println!("Command -> delta config user.password <password>");
+            return;
+        }
+
+        let username = &lines[0];
+
+        let repo_path = Path::new("C:/delta/.repo");
+        let mut repo_id = String::new();
+        let mut repo_name = String::new();
+
+        if repo_path.exists() && repo_path.is_file() {
+            let lines = read_lines(&String::from("C:/delta/.repo"));
+    
+            repo_name = lines[0].clone();
+            repo_id = lines[1].clone();
+        } else {
+            return;
+        }
+
+
+        let private_path_string = format!("./.private");
+        let private_path = Path::new(&private_path_string);
+
+        if private_path.exists() && private_path.is_file() {
+
+            return;
+        }
+
+        let protected_path_string = format!("./.protected");
+        let protected_path = Path::new(&protected_path_string);
+
+        if protected_path.exists() && protected_path.is_file() {
+
+            // get the files from protected path
+            let protected_files = read_lines(&protected_path_string);
+            for entry in WalkDir::new("./.delta")
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.path().is_file()) {
+
+                let path = entry.path();
+                let path_string = format!("{}", &path.display());
+                
+                let mut is_private = false;
+                for file in &protected_files {
+                    if path_string.contains(file) {
+                        is_private = true;
+                        break;
+                    }
+                }
+
+                // save in dynamoDB and S3
+                
+            }
+
+            return;
+        }
+
+
+
+
 
 
     // pull a repo from server

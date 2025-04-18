@@ -16,7 +16,7 @@ pub fn track_file (file_path: &String, ignore_files: &Vec<String>) {
     // check for file in .deltaignore
     let mut present = false;
     for i in 0..ignore_files.len() {
-        if file_path.contains(&ignore_files[i]) {
+        if file_path.contains(&ignore_files[i]) && !file_path.contains(".deltaignore") {
             present = true;
             break;
         }
