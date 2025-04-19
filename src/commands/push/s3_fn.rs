@@ -8,17 +8,17 @@ use std::error::Error;
 pub async fn s3_fn(files: &Vec<(String, bool)>, repo_id: String) -> Result<(), Box<dyn Error>> {
     for file in files {
 
-        let file_path = file.0.trim();
+        let file_path = &file.0;
     
         // Parse file name
-        let path = Path::new(file_path);
-        let file_name = match path.file_name() {
-            Some(name) => name.to_string_lossy().to_string(),
-            None => {
-                eprintln!("Invalid file path.");
-                return Ok(());
-            }
-        };
+        let path = Path::new(&file_path);
+        // let file_name = match path.file_name() {
+        //     Some(name) => name.to_string_lossy().to_string(),
+        //     None => {
+        //         eprintln!("Invalid file path.");
+        //         return Ok(());
+        //     }
+        // };
     
         // Read file content
         let mut file = BufReader::new(File::open(path)?);
@@ -48,7 +48,7 @@ pub async fn s3_fn(files: &Vec<(String, bool)>, repo_id: String) -> Result<(), B
         // Upload to S3
         let body = ByteStream::from(buffer.clone());
         
-        let file_path = format!("{}{}", repo_id, &file_name[1..]); 
+        let file_path = format!("{}/{}", repo_id, &file_path[1..]); 
 
         client
             .put_object()
@@ -58,9 +58,8 @@ pub async fn s3_fn(files: &Vec<(String, bool)>, repo_id: String) -> Result<(), B
             .send()
             .await?;
 
-        println!("{} uploaded successfully !!!", &file_path);
     }
-
+    println!("Uploaded successfully !!!");
 
     Ok(())
 }
